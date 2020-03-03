@@ -1,0 +1,15 @@
+series: xenial
+applications:
+  patchman-client:
+    charm: /tmp/charm-builds/patchman-client
+  patchman-server:
+    charm: cs:~huntdatacenter/patchman-server
+    num_units: 1
+  ubuntu:
+    charm: cs:ubuntu
+    num_units: 1
+relations:
+- - ubuntu:juju-info
+  - patchman-client:juju-info
+- - patchman-client:patchman
+  - patchman-server:patchman

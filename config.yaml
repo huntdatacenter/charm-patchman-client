@@ -1,0 +1,12 @@
+options:
+  tags:
+    type: string
+    default: "Server"
+    description: |
+      Comma-separated list of tags to group by in Patchman.
+  url:
+    type: string
+    default: ""
+    description: |
+      URL to Patchman server that is not related to this charm.
+      If this is set, the charm will not use the charm relation information.

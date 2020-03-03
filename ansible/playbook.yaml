@@ -1,0 +1,77 @@
+- hosts: localhost
+  vars:
+    patchman_path: /etc/patchman
+    patchman_client_config: /etc/patchman/patchman-client.conf
+
+  tasks:
+    - name: Add Openbytes repository key
+      apt_key:
+        id: 0412F522
+        keyserver: keyserver.ubuntu.com
+
+    - name: Remove Openbytes repository key
+      apt_key:
+        id: 0412F522
+        keyserver: keyserver.ubuntu.com
+        state: absent
+      tags: never, uninstall
+
+    - name: Add Openbytes repository
+      apt_repository:
+        repo: "deb https://repo.openbytes.ie/ubuntu {{ ansible_distribution_release }} main"
+        filename: patchman
+
+    - name: Remove Openbytes repository
+      apt_repository:
+        repo: "deb https://repo.openbytes.ie/ubuntu {{ ansible_distribution_release }} main"
+        filename: patchman
+        state: absent
+      tags: never, uninstall
+
+    - name: Install patchman-client
+      apt:
+        pkg: patchman-client
+
+    - name: Remove patchman-client
+      apt:
+        pkg: patchman-client
+        state: absent
+      tags: never, uninstall
+
+    - name: Get package facts
+      package_facts:
+        manager: auto
+
+    - name: Set patchman application version
+      command: application-version-set "{{ ansible_facts.packages['patchman-client'][0]['version'] }}"
+
+    - name: Get patchman_server_url from relation if not set in config
+      set_fact:
+        patchman_url: "http://{{ relations['patchman'][0]['ingress-address'] }}/patchman/"
+      when: url | length == 0
+
+    - name: Set remote server in {{ patchman_client_config }}
+      lineinfile:
+        path: "{{ patchman_client_config }}"
+        regexp: '^server='
+        line: "server={{ patchman_url }}"
+
+    - name: Set tags in {{ patchman_client_config }}
+      lineinfile:
+        path: "{{ patchman_client_config }}"
+        regexp: '^tags='
+        line: "tags={{ tags }}"
+
+    - name: Add daily cronjob for patchman-client
+      copy:
+        dest: /etc/cron.daily/patchman-client
+        content: >
+          #!/bin/sh
+          /usr/sbin/patchman-client
+        mode: "0755"
+
+    - name: Remove cronjob for patchman-client
+      file:
+        dest: /etc/cron.daily/patchman-client
+        state: absent
+      tags: never, uninstall
